@@ -1,0 +1,237 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Top Hub",
+   LoadingTitle = "Loading Top Hub",
+   LoadingSubtitle = "By @top_xyz",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Player Changer"
+   },
+   Discord = {
+      Enabled = true,
+      Invite = "3prSset9",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"Hello"}
+   }
+})
+
+local MainTab = Window:CreateTab("Main", nil)
+local MainSection = MainTab:CreateSection("Main")
+
+Rayfield:Notify({
+   Title = "Executed The Script Successfully",
+   Content = "A Good Script Hub",
+   Duration = 5,
+   Image = nil,
+   Actions = {
+      Ignore = {
+         Name = "Okay!",
+         Callback = function()
+         print("The user tapped Okay!")
+      end
+   },
+},
+})
+
+local Button = MainTab:CreateButton({
+   Name = "Infinite Yield",
+   Callback = function()
+        loadstring(game:HttpGet('https://[Log in to view URL]'))()
+   end,
+})
+
+local Button = MainTab:CreateButton({
+   Name = "Click Aura *OP*",
+   Callback = function()
+        repeat task.wait() until game:IsLoaded()
+        local LocalPlayer = game:GetService('Players').LocalPlayer
+        repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+        repeat task.wait() until workspace.__THINGS.Breakables
+
+        local RS = game:GetService("ReplicatedStorage")
+        local Network = require(RS.Library.Client.Network)
+        local HRP = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+
+        local BREAKABLE_DISTANCE = 125
+        local BREAKABLE_FOLDER = workspace.__THINGS.Breakables
+
+        local function GetRandomBreakable()
+            local validBreakables = {}
+            for _, breakable in pairs(BREAKABLE_FOLDER:GetChildren()) do
+                if breakable:IsA("Model") and breakable.PrimaryPart then
+                    local distance = (HRP.Position - breakable.PrimaryPart.Position).Magnitude
+                    if distance <= BREAKABLE_DISTANCE then
+                        table.insert(validBreakables, breakable.Name)
+                    end
+                end
+            end
+            return #validBreakables > 0 and validBreakables[math.random(#validBreakables)] or nil
+        end
+
+        while task.wait() do
+            local breakableId = GetRandomBreakable()
+            if breakableId then
+                Network.UnreliableFire("Breakables_PlayerDealDamage", breakableId)
+            end
+        end
+   end,
+})
+
+local Button = MainTab:CreateButton({
+   Name = "Fast Farm & Auto collect orbs",
+   Callback = function()
+        repeat task.wait() until game:IsLoaded()
+        local LocalPlayer = game:GetService('Players').LocalPlayer
+        repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+        repeat task.wait() until workspace.__THINGS.Breakables and workspace.__THINGS.Lootbags and workspace.__THINGS.Orbs
+
+        local RS = game:GetService("ReplicatedStorage")
+        local Network = require(RS.Library.Client.Network)
+        local PlayerPet = require(RS.Library.Client.PlayerPet)
+        local HRP = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+
+        local BREAKABLE_DISTANCE = 100
+        local BREAKABLE_FOLDER = workspace.__THINGS.Breakables
+
+        local function AutoCollect()
+            local function ConnectLoot(folder, eventName)
+                if folder then
+                    folder.ChildAdded:Connect(function(item)
+                        task.wait()
+                        pcall(function()
+                            Network.Fire(eventName, {item.Name})
+                            item:Destroy()
+                        end)
+                    end)
+                end
+            end
+
+            ConnectLoot(workspace.__THINGS:FindFirstChild("Lootbags"), 'Lootbags_Claim')
+            ConnectLoot(workspace.__THINGS:FindFirstChild("Orbs"), 'Orbs: Collect')
+        end
+
+        hookfunction(PlayerPet.CalculateSpeedMultiplier, function() return 200 end)
+
+        local function GetRandomBreakable()
+            local validBreakables = {}
+            for _, breakable in pairs(BREAKABLE_FOLDER:GetChildren()) do
+                if breakable:IsA("Model") and breakable.PrimaryPart then
+                    local distance = (HRP.Position - breakable.PrimaryPart.Position).Magnitude
+                    if distance <= BREAKABLE_DISTANCE then
+                        table.insert(validBreakables, breakable.Name)
+                    end
+                end
+            end
+            return #validBreakables > 0 and validBreakables[math.random(#validBreakables)] or nil
+        end
+
+        local function GetPetIds()
+            local ids = {}
+            for petId in pairs(PlayerPet.GetAll()) do
+                table.insert(ids, tostring(petId))
+            end
+            return ids
+        end
+
+        AutoCollect()
+
+        while task.wait() do
+            local breakableId = GetRandomBreakable()
+            local petIds = GetPetIds()
+            if breakableId and #petIds > 0 then
+                local commandTable = {[breakableId] = petIds}
+                Network.UnreliableFire("Breakables_PlayerDealDamage", breakableId)
+                Network.Fire("Breakables_JoinPetBulk", {commandTable})
+            end
+        end
+   end,
+})
+
+local Button = MainTab:CreateButton({
+   Name = "Auto Relics",
+   Callback = function()
+        repeat task.wait() until game:IsLoaded()
+        local LocalPlayer = game:GetService('Players').LocalPlayer
+        repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+        local Active = workspace.__THINGS.__INSTANCE_CONTAINER.Active
+        local Client = game:GetService('ReplicatedStorage').Library.Client
+        local Network = require(Client.Network)
+        local SaveMod = require(Client.Save)
+        local InstancingCmds = require(Client.InstancingCmds)
+
+        local Relics = {}
+
+        for i, v in pairs(Network.Invoke("Relics_Request")) do
+            if not SaveMod.Get().ShinyRelics[i] then
+                Relics[i] = v
+            end
+        end
+
+        local ClaimRelic = function(Id, Data)
+            local Claimed = false
+            while not Claimed do
+                LocalPlayer.Character.HumanoidRootPart.CFrame = Data.Position
+                Claimed = Network.Invoke("Relic_Found", Id)
+                task.wait(0.1)
+            end
+        end
+
+        for i, v in pairs(Relics) do
+            if v.ParentType == 1 then
+                ClaimRelic(i, v)
+            elseif v.ParentType == 2 and InstancingCmds.DoesMeetRequirement(v.ParentId) then
+                while not Active:FindFirstChild(v.ParentId) do
+                    setthreadidentity(2) InstancingCmds.Enter(v.ParentId) setthreadidentity(8) task.wait(1)
+                end
+
+                ClaimRelic(i, v)
+
+                while Active:FindFirstChild(v.ParentId) do
+                    setthreadidentity(2) InstancingCmds.Leave(v.ParentId) setthreadidentity(8) task.wait(1)
+                end
+            end
+        end
+   end,
+})
+
+local Button = MainTab:CreateButton({
+   Name = "Auto Garden",
+   Callback = function()
+        repeat task.wait() until game:IsLoaded()
+        local LocalPlayer = game:GetService('Players').LocalPlayer
+        repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+        local Client = game:GetService('ReplicatedStorage').Library.Client
+        local OrbCmds = require(Client.OrbCmds.Orb)
+        local Network = require(Client.Network)
+
+        OrbCmds.CombineDelay, OrbCmds.CollectDistance, OrbCmds.DefaultPickupDistance, OrbCmds.CombineDistance = -math.huge, math.huge, math.huge, math.huge
+
+        while task.wait() do
+            if workspace.__THINGS.__INSTANCE_CONTAINER.Active:FindFirstChild("FlowerGarden") then
+                for i = 1, 10 do
+                    task.spawn(function()
+                        Network.Invoke("Instancing_InvokeCustomFromClient", "FlowerGarden", "PlantSeed", i, "Diamond")
+                        Network.Invoke("Instancing_InvokeCustomFromClient", "FlowerGarden", "InstaGrowSeed", i)
+                        Network.Invoke("Instancing_InvokeCustomFromClient", "FlowerGarden", "ClaimPlant", i)
+                    end)
+                    task.wait()
+                end
+            else
+                setthreadidentity(2) require(Client.InstancingCmds).Enter("FlowerGarden") setthreadidentity(8) task.wait(1)
+            end
+        end
+   end,
+})
