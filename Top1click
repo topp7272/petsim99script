@@ -17,7 +17,7 @@ if currentgame then
 	if currentgame == "PETSGO" then
 		loadstring(game:HttpGet("skibidi.com"))()
 	elseif currentgame == "PETSIM99" then
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Top1click.txt"))()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_7112452314686298.txt"))()
 	end
 else
 	warn("GAME/PLACE NOT SUPPORTED")
