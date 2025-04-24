@@ -1,0 +1,507 @@
+--# SERVICES #--
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RNS = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+repeat task.wait() until game:IsLoaded()
+repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+--# ULTRA OPTIMIZATION #--
+if UltraOptimization then
+    local Lighting = game:GetService("Lighting")
+    local MaterialService = game:GetService("MaterialService")
+    local Terrain = workspace:FindFirstChildOfClass('Terrain')
+    local UserGameSettings = UserSettings():GetService("UserGameSettings")
+
+    UserGameSettings.MasterVolume = 0
+    UserGameSettings.GraphicsQualityLevel = 1
+    settings().Rendering.QualityLevel = 1
+    settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+    MaterialService.Use2022Materials = false
+
+    sethiddenproperty(Lighting, "Technology", 2)
+    sethiddenproperty(Terrain, "Decoration", false)
+    Terrain.WaterWaveSize = 0
+    Terrain.WaterWaveSpeed = 0
+    Terrain.WaterReflectance = 0
+    Terrain.WaterTransparency = 0
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    Lighting.Brightness = 0
+
+    local function HandlePart(v)
+        if v:IsA('Workspace') then
+            sethiddenproperty(v, 'StreamingTargetRadius', 64)
+            sethiddenproperty(v, 'StreamingPauseMode', 2)
+            if v:FindFirstChildOfClass('Terrain') then
+                sethiddenproperty(v.Terrain, 'Decoration', false)
+                v.Terrain.Elasticity = 0
+                v.Terrain.WaterWaveSize = 0
+                v.Terrain.WaterWaveSpeed = 0
+                v.Terrain.WaterReflectance = 0
+                v.Terrain.WaterTransparency = 1
+            end
+        elseif v:IsA('NetworkClient') then
+            v:SetOutgoingKBPSLimit(100)
+        elseif v:IsA('Lighting') then
+            sethiddenproperty(v, 'Technology', 2)
+            v.GlobalShadows = false
+            v.FogEnd = 9e9
+            v.Brightness = 0
+        elseif v:IsA('Model') then
+            sethiddenproperty(v, 'LevelOfDetail', 1)
+        elseif v == LocalPlayer then
+            v.ReplicationFocus = nil
+        elseif v:IsA('Decal') or v:IsA('Texture') then
+            v.Transparency = 1
+        elseif v:IsA('Fire') or v:IsA('SpotLight') or v:IsA('Smoke') or v:IsA('Sparkles') then
+            v.Enabled = false
+        elseif v:IsA('SpecialMesh') then
+            v.TextureId = ''
+            v.MeshId = ''
+        elseif v:IsA('ParticleEmitter') or v:IsA('Trail') then
+            v.Lifetime = NumberRange.new(0)
+        elseif v:IsA('PostEffect') then
+            v.Enabled = false
+        elseif v:IsA('BasePart') and not v:IsA('MeshPart') then
+            v.Reflectance = 0
+            v.Material = 'SmoothPlastic'
+        elseif v:IsA('Pants') or v:IsA('Shirt') then
+            v[v.ClassName..'Template'] = ''
+        elseif v:IsA('Explosion') then
+            v.BlastPressure = 0
+            v.BlastRadius = 0
+            v.Visible = false
+            v.Position = Vector3.new(0, 0, 0)
+        elseif v:IsA('ForceField') then
+            v.Visible = false
+        elseif v:IsA('ShirtGraphic') then
+            v.Graphic = ''
+        elseif v:IsA('MeshPart') then
+            v.MeshId = ''
+            v.TextureID = ''
+            v.Reflectance = 0
+            v.Material = 'SmoothPlastic'
+        elseif v:IsA('CharacterMesh') then
+            v.BaseTextureId = ''
+            v.MeshId = ''
+            v.OverlayTextureId = ''
+        elseif v:IsA('Sound') then
+            v.SoundId = ''
+            v.Volume = 0
+        end
+    end
+
+    for _,v in pairs(game:GetDescendants()) do
+        pcall(HandlePart, v)
+    end
+
+    game.DescendantAdded:Connect(function(v)
+        pcall(HandlePart, v)
+    end)
+end
+
+--# RAINBOW FPS COUNTER #--
+local fpsLabel = Instance.new("TextLabel")
+fpsLabel.Name = "FPSLabel"
+fpsLabel.Size = UDim2.new(0, 100, 0, 30)
+fpsLabel.Position = UDim2.new(0, 10, 0, 10)
+fpsLabel.BackgroundTransparency = 0.7
+fpsLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+fpsLabel.Text = "FPS: 0"
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextSize = 14
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+fpsLabel.ZIndex = 1000
+
+local hue = 0
+coroutine.wrap(function()
+    local lastTick = tick()
+    local frames = 0
+    while true do
+        frames = frames + 1
+        if tick() - lastTick >= 1 then
+            fpsLabel.Text = string.format("FPS: %d", frames)
+            frames = 0
+            lastTick = tick()
+        end
+        hue = (hue + 0.01) % 1
+        fpsLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+        task.wait()
+    end
+end)()
+
+--# ORIGINAL GUI #--
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EasterEventGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.DisplayOrder = 999
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = CoreGui
+fpsLabel.Parent = screenGui
+
+local background = Instance.new("Frame")
+background.Size = UDim2.new(1, 0, 1, 0)
+background.Position = UDim2.new(0, 0, 0, 0)
+background.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+background.BorderSizePixel = 0
+background.ZIndex = 999
+background.Parent = screenGui
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0.08, 0, 0.08, 0)
+closeButton.Position = UDim2.new(0.92, 0, 0.05, 0)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextScaled = true
+closeButton.ZIndex = 1001
+closeButton.Parent = background
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.1, 0)
+title.Position = UDim2.new(0.5, 0, 0.3, 0)
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Text = "EASTER EVENT SCRIPT BY TOPP!😏"
+title.TextColor3 = Color3.fromRGB(255, 170, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBlack
+title.BackgroundTransparency = 1
+title.ZIndex = 1000
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = background
+
+local uptimeLabel = Instance.new("TextLabel")
+uptimeLabel.Size = UDim2.new(1, 0, 0.1, 0)
+uptimeLabel.Position = UDim2.new(0.5, 0, 0.45, 0)
+uptimeLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+uptimeLabel.Text = "Hatching for: 00:00:00"
+uptimeLabel.TextColor3 = Color3.fromRGB(255, 255, 170)
+uptimeLabel.TextScaled = true
+uptimeLabel.Font = Enum.Font.GothamMedium
+uptimeLabel.BackgroundTransparency = 1
+uptimeLabel.ZIndex = 1000
+uptimeLabel.TextXAlignment = Enum.TextXAlignment.Center
+uptimeLabel.Parent = background
+
+local discordButton = Instance.new("TextButton")
+discordButton.Size = UDim2.new(0.5, 0, 0.08, 0)
+discordButton.Position = UDim2.new(0.5, 0, 0.6, 0)
+discordButton.AnchorPoint = Vector2.new(0.5, 0.5)
+discordButton.Text = "https://discord.gg/RnTEdqhJA6"
+discordButton.TextColor3 = Color3.fromRGB(100, 200, 255)
+discordButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+discordButton.Font = Enum.Font.GothamMedium
+discordButton.TextScaled = true
+discordButton.ZIndex = 1000
+discordButton.Parent = background
+
+discordButton.MouseButton1Click:Connect(function()
+    setclipboard("https://discord.gg/RnTEdqhJA6")
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Discord Link Copied!",
+        Text = "Paste it in your browser.",
+        Duration = 5
+    })
+end)
+
+background.BackgroundTransparency = 1
+title.TextTransparency = 1
+uptimeLabel.TextTransparency = 1
+discordButton.BackgroundTransparency = 1
+discordButton.TextTransparency = 1
+closeButton.BackgroundTransparency = 1
+closeButton.TextTransparency = 1
+
+local fadeIn = TweenService:Create(background, TweenInfo.new(1), {BackgroundTransparency = 0})
+local textFadeIn = TweenService:Create(title, TweenInfo.new(1), {TextTransparency = 0})
+local timerFadeIn = TweenService:Create(uptimeLabel, TweenInfo.new(1), {TextTransparency = 0})
+local buttonFadeIn = TweenService:Create(discordButton, TweenInfo.new(1), {BackgroundTransparency = 0, TextTransparency = 0})
+local closeFadeIn = TweenService:Create(closeButton, TweenInfo.new(1), {BackgroundTransparency = 0, TextTransparency = 0})
+
+fadeIn:Play()
+textFadeIn:Play()
+timerFadeIn:Play()
+buttonFadeIn:Play()
+closeFadeIn:Play()
+
+local startTime = os.time()
+local function updateTimer()
+    while task.wait(1) do
+        local elapsed = os.time() - startTime
+        local hours = math.floor(elapsed / 3600)
+        local minutes = math.floor((elapsed % 3600) / 60)
+        local seconds = elapsed % 60
+        uptimeLabel.Text = string.format("Hatching for: %02d:%02d:%02d", hours, minutes, seconds)
+    end
+end
+coroutine.wrap(updateTimer)()
+
+--# ORIGINAL FARMING LOGIC #--
+if FastFarm then
+    local BREAKABLE_FOLDER = workspace.__THINGS.Breakables
+    local HRP = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+    
+    local function AutoCollect()
+        local function ConnectLoot(folder, eventName)
+            if folder then
+                folder.ChildAdded:Connect(function(item)
+                    task.wait()
+                    pcall(function()
+                        require(RS.Library.Client.Network).Fire(eventName, {item.Name})
+                        item:Destroy()
+                    end)
+                end)
+            end
+        end
+        ConnectLoot(workspace.__THINGS:FindFirstChild("Lootbags"), 'Lootbags_Claim')
+        ConnectLoot(workspace.__THINGS:FindFirstChild("Orbs"), 'Orbs: Collect')
+    end
+
+    if SpeedMultiplier ~= 1 then
+        hookfunction(require(RS.Library.Client.PlayerPet).CalculateSpeedMultiplier, function() 
+            return SpeedMultiplier 
+        end)
+    end
+
+    coroutine.wrap(function()
+        AutoCollect()
+        while task.wait() do
+            local breakableId = nil
+            local validBreakables = {}
+            for _, breakable in pairs(BREAKABLE_FOLDER:GetChildren()) do
+                if breakable:IsA("Model") and breakable.PrimaryPart then
+                    local distance = (HRP.Position - breakable.PrimaryPart.Position).Magnitude
+                    if distance <= FarmDistance then
+                        table.insert(validBreakables, breakable.Name)
+                    end
+                end
+            end
+            breakableId = #validBreakables > 0 and validBreakables[math.random(#validBreakables)] or nil
+            
+            if breakableId then
+                local petIds = {}
+                for petId in pairs(require(RS.Library.Client.PlayerPet).GetAll()) do
+                    table.insert(petIds, tostring(petId))
+                end
+                
+                if #petIds > 0 then
+                    pcall(function()
+                        local Network = require(RS.Library.Client.Network)
+                        Network.UnreliableFire("Breakables_PlayerDealDamage", breakableId)
+                        Network.Fire("Breakables_JoinPetBulk", {[breakableId] = petIds})
+                    end)
+                end
+            end
+        end
+    end)()
+end
+
+--# ORIGINAL HATCHING LOGIC #--
+if AutoHatch then
+    coroutine.wrap(function()
+        local EggCmds = require(RS.Library.Client.EggCmds)
+        local maxHatch = MaxHatch and EggCmds.GetMaxHatch() or 1
+        local Network = require(RS.Library.Client.Network)
+        
+        local Eggs = LocalPlayer.PlayerScripts.Scripts.Game['Egg Opening Frontend']
+        getsenv(Eggs).PlayEggAnimation = function() end
+        
+        while task.wait(0.5) do
+            local nearestEggName
+            local eggsFolder = workspace.__THINGS:FindFirstChild("CustomEggs")
+            if eggsFolder and LocalPlayer.Character then
+                local playerRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if playerRoot then
+                    local nearestDistance = math.huge
+                    for _, eggModel in ipairs(eggsFolder:GetChildren()) do
+                        if eggModel:IsA("Model") and eggModel.PrimaryPart then
+                            local distance = (playerRoot.Position - eggModel.PrimaryPart.Position).Magnitude
+                            if distance < nearestDistance then
+                                nearestEggName, nearestDistance = eggModel.Name, distance
+                            end
+                        end
+                    end
+                end
+            end
+            
+            if nearestEggName then
+                pcall(function() 
+                    Network.Invoke("CustomEggs_Hatch", nearestEggName, maxHatch) 
+                end)
+            end
+        end
+    end)()
+end
+
+--# ORIGINAL TELEPORT LOGIC #--
+if TeleportToEvent then
+    coroutine.wrap(function()
+        require(RS.Library.Client.InstancingCmds).Enter("EasterEvent")
+        task.wait(5)
+        local area = workspace.__THINGS.Instances.EasterEvent.BREAKABLE_SPAWNS.Main_5
+        if area and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = area.CFrame * CFrame.new(0, 0, -30)
+        end
+    end)()
+end
+
+--# ORIGINAL BOOST LOGIC #--
+if AutoBoost then
+    coroutine.wrap(function()
+        while task.wait(5) do
+            pcall(function()
+                game:GetService("ReplicatedStorage").Network.GiantEasterBasket_AddTime:InvokeServer("Lucky Easter Egg", 3)
+            end)
+        end
+    end)()
+end
+
+if AutoBoostBasketHuge then
+    coroutine.wrap(function()
+        local args = {
+            [1] = "Hunt Easter Egg",
+            [2] = 2
+        }
+        while task.wait(3) do
+            pcall(function()
+                game:GetService("ReplicatedStorage").Network.GiantEasterBasket_AddTime:InvokeServer(unpack(args))
+            end)
+        end
+    end)()
+end
+
+--# ORIGINAL EGG HUNT LOGIC #--
+if EggHunt then
+    coroutine.wrap(function()
+        local Network = require(RS.Library.Client.Network)
+        while task.wait(1) do
+            local HuntEggs = workspace.__THINGS:FindFirstChild("Hunt")
+            if HuntEggs then
+                for _, egg in pairs(HuntEggs:GetChildren()) do
+                    if egg:IsA("BasePart") then
+                        local pos = egg.CFrame.Position
+                        local partString = string.format(
+                            "Part_X%d_Y%d_Z%d",
+                            math.floor(pos.X + 0.5),
+                            math.floor(pos.Y + 0.5),
+                            math.floor(pos.Z + 0.5)
+                        )
+                        pcall(function()
+                            Network.Invoke("Easter Egg Hunt: Claim", partString)
+                        end)
+                    end
+                end
+            end
+        end
+    end)()
+end
+
+--# ORIGINAL ANTI-AFK LOGIC #--
+if AntiAFK then
+    coroutine.wrap(function()
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        while task.wait(100) do
+            VirtualInputManager:SendKeyEvent(true, "Space", false, game)
+            task.wait(0.1)
+            VirtualInputManager:SendKeyEvent(false, "Space", false, game)
+        end
+    end)()
+end
+
+--# ORIGINAL DISCORD WEBHOOK LOGIC #--
+if DiscordWebhook ~= "" then
+    local StoredUIDs = {}
+    local Library = RS.Library
+    local SaveMod = require(Library.Client.Save)
+    
+    local function Formatint(int)
+        local Suffix = {"", "k", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "Oc", "No", "De", "UDe", "DDe", "TDe", "QdDe", "QnDe", "SxDe", "SpDe", "OcDe", "NoDe", "Vg", "UVg", "DVg", "TVg", "QdVg", "QnVg", "SxVg", "SpVg", "OcVg", "NoVg", "Tg", "UTg", "DTg", "TTg", "QdTg", "QnTg", "SxTg", "SpTg", "OcTg", "NoTg", "QdAg", "QnAg", "SxAg", "SpAg", "OcAg", "NoAg", "e141", "e144", "e147", "e150", "e153", "e156", "e159", "e162", "e165", "e168", "e171", "e174", "e177", "e180", "e183", "e186", "e189", "e192", "e195", "e198", "e201", "e204", "e207", "e210", "e213", "e216", "e219", "e222", "e225", "e228", "e231", "e234", "e237", "e240", "e243", "e246", "e249", "e252", "e255", "e258", "e261", "e264", "e267", "e270", "e273", "e276", "e279", "e282", "e285", "e288", "e291", "e294", "e297", "e300", "e303"}
+        local Index = 1
+        if int < 999 then return int end
+        while int >= 1000 and Index < #Suffix do
+            int = int / 1000
+            Index = Index + 1
+        end
+        return string.format("%.2f%s", int, Suffix[Index])
+    end
+    
+    local function GetAsset(Id, pt)
+        local Asset = require(Library.Directory.Pets)[Id]
+        return string.gsub(Asset and (pt == 1 and Asset.goldenThumbnail or Asset.thumbnail) or "14976456685", "rbxassetid://", "")
+    end
+    
+    local function SendWebhook(Id, pt, sh)
+        local Img = string.format("https://biggamesapi.io/image/%s", GetAsset(Id, pt))
+        local Version = pt == 1 and "Golden " or pt == 2 and "Rainbow " or ""
+        local Title = string.format("||%s|| Obtained a %s%s%s", LocalPlayer.Name, Version, sh and "Shiny " or "", Id)
+        local Exist = require(Library.Client.ExistCountCmds).Get({
+            Class = { Name = "Pet" },
+            IsA = function(InputClass) return InputClass == "Pet" end,
+            GetId = function() return Id end,
+            StackKey = function()
+                return game:GetService("HttpService"):JSONEncode({id = Id, sh = sh, pt = pt, tn = nil})
+            end
+        }) or 0
+        local Rap = require(Library.Client.DevRAPCmds).Get({
+            Class = { Name = "Pet" },
+            IsA = function(InputClass) return InputClass == "Pet" end,
+            GetId = function() return Id end,
+            StackKey = function()
+                return game:GetService("HttpService"):JSONEncode({id = Id, sh = sh, pt = pt, tn = nil})
+            end
+        }) or 0
+        
+        local Body = game:GetService("HttpService"):JSONEncode({
+            content = string.format("<@%s>", DiscordID),
+            embeds = {{
+                title = Title,
+                color = 0xFF00FF,
+                timestamp = DateTime.now():ToIsoDate(),
+                thumbnail = { url = Img },
+                fields = {{
+                    name = string.format("💎 Rap: ``%s`` \n💫 Exist: ``%s``", Formatint(Rap), Formatint(Exist)),
+                    value = ""
+                }},
+                footer = { text = "Topp" }
+            }}
+        })
+        
+        pcall(function()
+            request({
+                Url = DiscordWebhook,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = Body
+            })
+        end)
+    end
+    
+    for i,v in pairs(SaveMod.Get()['Inventory']['Pet'] or {}) do
+        if (string.find(v.id, "Huge") or string.find(v.id, "Titanic")) and NotifyRareOnly then
+            StoredUIDs[i] = true
+        end
+    end
+    
+    require(Library.Client.Network).Fired("Items: Update"):Connect(function(_, Inventory)
+        if Inventory["set"] and Inventory["set"]["Pet"] then
+            for uid, v in pairs(Inventory["set"]["Pet"]) do
+                if (string.find(v.id, "Huge") or string.find(v.id, "Titanic")) and not StoredUIDs[uid] and NotifyRareOnly then
+                    SendWebhook(v.id, v.pt, v.sh)
+                    StoredUIDs[uid] = true
+                end
+            end
+        end
+    end)
+end
+
+print("Script fully loaded with all features")
