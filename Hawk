@@ -1,4 +1,20 @@
---# SERVICES #--
+local config = _G.EasterConfig or {
+    FastFarm = false,
+    SpeedMultiplier = 1,
+    FarmDistance = 50,
+    AutoHatch = false,
+    MaxHatch = false,
+    TeleportToEvent = false,
+    AutoBoost = false,
+    AutoBoostBasketHuge = false,
+    EggHunt = false,
+    AntiAFK = false,
+    UltraOptimization = false,
+    DiscordWebhook = "",
+    DiscordID = "",
+    NotifyRareOnly = false
+}
+
 local RS = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RNS = game:GetService("RunService")
@@ -9,8 +25,7 @@ local LocalPlayer = Players.LocalPlayer
 repeat task.wait() until game:IsLoaded()
 repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
 
---# ULTRA OPTIMIZATION #--
-if UltraOptimization then
+if config.UltraOptimization then
     local Lighting = game:GetService("Lighting")
     local MaterialService = game:GetService("MaterialService")
     local Terrain = workspace:FindFirstChildOfClass('Terrain')
@@ -104,7 +119,6 @@ if UltraOptimization then
     end)
 end
 
---# RAINBOW FPS COUNTER #--
 local fpsLabel = Instance.new("TextLabel")
 fpsLabel.Name = "FPSLabel"
 fpsLabel.Size = UDim2.new(0, 100, 0, 30)
@@ -134,7 +148,6 @@ coroutine.wrap(function()
     end
 end)()
 
---# ORIGINAL GUI #--
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EasterEventGUI"
 screenGui.ResetOnSpawn = false
@@ -246,8 +259,7 @@ local function updateTimer()
 end
 coroutine.wrap(updateTimer)()
 
---# ORIGINAL FARMING LOGIC #--
-if FastFarm then
+if config.FastFarm then
     local BREAKABLE_FOLDER = workspace.__THINGS.Breakables
     local HRP = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
     
@@ -267,9 +279,9 @@ if FastFarm then
         ConnectLoot(workspace.__THINGS:FindFirstChild("Orbs"), 'Orbs: Collect')
     end
 
-    if SpeedMultiplier ~= 1 then
+    if config.SpeedMultiplier ~= 1 then
         hookfunction(require(RS.Library.Client.PlayerPet).CalculateSpeedMultiplier, function() 
-            return SpeedMultiplier 
+            return config.SpeedMultiplier 
         end)
     end
 
@@ -281,7 +293,7 @@ if FastFarm then
             for _, breakable in pairs(BREAKABLE_FOLDER:GetChildren()) do
                 if breakable:IsA("Model") and breakable.PrimaryPart then
                     local distance = (HRP.Position - breakable.PrimaryPart.Position).Magnitude
-                    if distance <= FarmDistance then
+                    if distance <= config.FarmDistance then
                         table.insert(validBreakables, breakable.Name)
                     end
                 end
@@ -306,11 +318,10 @@ if FastFarm then
     end)()
 end
 
---# ORIGINAL HATCHING LOGIC #--
-if AutoHatch then
+if config.AutoHatch then
     coroutine.wrap(function()
         local EggCmds = require(RS.Library.Client.EggCmds)
-        local maxHatch = MaxHatch and EggCmds.GetMaxHatch() or 1
+        local maxHatch = config.MaxHatch and EggCmds.GetMaxHatch() or 1
         local Network = require(RS.Library.Client.Network)
         
         local Eggs = LocalPlayer.PlayerScripts.Scripts.Game['Egg Opening Frontend']
@@ -343,8 +354,7 @@ if AutoHatch then
     end)()
 end
 
---# ORIGINAL TELEPORT LOGIC #--
-if TeleportToEvent then
+if config.TeleportToEvent then
     coroutine.wrap(function()
         require(RS.Library.Client.InstancingCmds).Enter("EasterEvent")
         task.wait(5)
@@ -355,8 +365,7 @@ if TeleportToEvent then
     end)()
 end
 
---# ORIGINAL BOOST LOGIC #--
-if AutoBoost then
+if config.AutoBoost then
     coroutine.wrap(function()
         while task.wait(5) do
             pcall(function()
@@ -366,7 +375,7 @@ if AutoBoost then
     end)()
 end
 
-if AutoBoostBasketHuge then
+if config.AutoBoostBasketHuge then
     coroutine.wrap(function()
         local args = {
             [1] = "Hunt Easter Egg",
@@ -380,8 +389,7 @@ if AutoBoostBasketHuge then
     end)()
 end
 
---# ORIGINAL EGG HUNT LOGIC #--
-if EggHunt then
+if config.EggHunt then
     coroutine.wrap(function()
         local Network = require(RS.Library.Client.Network)
         while task.wait(1) do
@@ -406,8 +414,7 @@ if EggHunt then
     end)()
 end
 
---# ORIGINAL ANTI-AFK LOGIC #--
-if AntiAFK then
+if config.AntiAFK then
     coroutine.wrap(function()
         local VirtualInputManager = game:GetService("VirtualInputManager")
         while task.wait(100) do
@@ -418,8 +425,7 @@ if AntiAFK then
     end)()
 end
 
---# ORIGINAL DISCORD WEBHOOK LOGIC #--
-if DiscordWebhook ~= "" then
+if config.DiscordWebhook ~= "" then
     local StoredUIDs = {}
     local Library = RS.Library
     local SaveMod = require(Library.Client.Save)
@@ -462,7 +468,7 @@ if DiscordWebhook ~= "" then
         }) or 0
         
         local Body = game:GetService("HttpService"):JSONEncode({
-            content = string.format("<@%s>", DiscordID),
+            content = string.format("<@%s>", config.DiscordID),
             embeds = {{
                 title = Title,
                 color = 0xFF00FF,
@@ -478,7 +484,7 @@ if DiscordWebhook ~= "" then
         
         pcall(function()
             request({
-                Url = DiscordWebhook,
+                Url = config.DiscordWebhook,
                 Method = "POST",
                 Headers = { ["Content-Type"] = "application/json" },
                 Body = Body
@@ -487,7 +493,7 @@ if DiscordWebhook ~= "" then
     end
     
     for i,v in pairs(SaveMod.Get()['Inventory']['Pet'] or {}) do
-        if (string.find(v.id, "Huge") or string.find(v.id, "Titanic")) and NotifyRareOnly then
+        if (string.find(v.id, "Huge") or string.find(v.id, "Titanic")) and config.NotifyRareOnly then
             StoredUIDs[i] = true
         end
     end
@@ -495,7 +501,7 @@ if DiscordWebhook ~= "" then
     require(Library.Client.Network).Fired("Items: Update"):Connect(function(_, Inventory)
         if Inventory["set"] and Inventory["set"]["Pet"] then
             for uid, v in pairs(Inventory["set"]["Pet"]) do
-                if (string.find(v.id, "Huge") or string.find(v.id, "Titanic")) and not StoredUIDs[uid] and NotifyRareOnly then
+                if (string.find(v.id, "Huge") or string.find(v.id, "Titanic")) and not StoredUIDs[uid] and config.NotifyRareOnly then
                     SendWebhook(v.id, v.pt, v.sh)
                     StoredUIDs[uid] = true
                 end
