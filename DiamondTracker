@@ -1,0 +1,76 @@
+repeat task.wait() until game:IsLoaded()
+local LocalPlayer = game:GetService('Players').LocalPlayer
+repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+local RS = game:GetService("ReplicatedStorage")
+local Save = require(RS.Library.Client.Save).Get().Inventory
+local HttpService = game:GetService("HttpService")
+
+local webhookUrl = "YOUR_WEBHOOK_URL_HERE"
+local discordid = ""
+local DIAMOND_GIF = "https://cdn.discordapp.com/emojis/1062097221652328580.webp"
+local pingtext = discordid ~= "" and ("<@" .. discordid .. ">") or ""
+
+local function getDiamonds()
+    local total = 0
+    for _, v in pairs(Save.Currency) do
+        if v.id == "Diamonds" then
+            total = total + v._am
+        end
+    end
+    return total
+end
+
+local function sendWebhook(earned, total)
+    local requestFunc = syn and syn.request or http_request or http.request
+    local formattedEarned = earned >= 1000000 and string.format("%.1fm", earned/1000000) or tostring(earned)
+    local formattedTotal = total >= 1000000 and string.format("%.1fm", total/1000000) or tostring(total)
+    
+    local embed = {
+        title = "💎 Minute Diamond Report",
+        color = 49151,
+        thumbnail = {url = DIAMOND_GIF},
+        fields = {
+            {name = "Earned Last Minute:", value = formattedEarned, inline = true},
+            {name = "Total Diamonds:", value = formattedTotal, inline = true},
+            {name = "Player:", value = LocalPlayer.Name, inline = false}
+        },
+        footer = {
+            text = "PS99 Diamond Tracker",
+            icon_url = "https://www.roblox.com/headshot-thumbnail/image?userId="..LocalPlayer.UserId
+        }
+    }
+
+    local success, response = pcall(function()
+        return requestFunc({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({
+                content = pingtext,
+                embeds = {embed}
+            })
+        })
+    end)
+
+    if not success then
+        warn("Webhook failed to send:", response)
+    end
+end
+
+local lastDiamonds = getDiamonds()
+sendWebhook(0, lastDiamonds)
+
+task.spawn(function()
+    while true do
+        task.wait(60)
+        local currentDiamonds = getDiamonds()
+        local earned = currentDiamonds - lastDiamonds
+        
+        if earned > 0 then
+            sendWebhook(earned, currentDiamonds)
+        end
+        
+        lastDiamonds = currentDiamonds
+    end
+end)
