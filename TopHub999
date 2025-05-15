@@ -3,6 +3,7 @@ local ids = {
 	[8737899170] = "PETSIM99",
 	[16498369169] = "PETSIM99",
 	[17503543197] = "PETSIM99"
+        [15376909622] = "PETSIM99"
 }
 
 local currentgame = ids[game.PlaceId] or nil
