@@ -17,7 +17,7 @@ end
 
 if currentgame then
     if currentgame == "PETSGO" then     loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/PetsGoTopHub"))()
-    elseif currentgame == "PETSIM99" then      loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/TOPhubps99.lua.txt"))()
+    elseif currentgame == "PETSIM99" then      loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_8358162383685817.lua.txt"))()
     end
 else
     warn("GAME/PLACE NOT SUPPORTED")
