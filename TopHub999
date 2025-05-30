@@ -4,7 +4,8 @@ local ids = {
     [16498369169] = "PETSIM99",
     [17503543197] = "PETSIM99",
     [15376909622] = "PETSIM99",
-    [140403681187145] = "PETSIM99"  -- Added the new Pet Sim 99 ID
+    [140403681187145] = "PETSIM99",
+    [126884695634066] = "GROWAGARDEN"  -- Added the new Grow A Garden ID
 }
 
 local currentgame = ids[game.PlaceId] or nil
@@ -16,8 +17,12 @@ if executorlevel < 4 then
 end
 
 if currentgame then
-    if currentgame == "PETSGO" then     loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/PetsGoTopHub"))()
-    elseif currentgame == "PETSIM99" then      loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_8358162383685817.lua.txt"))()
+    if currentgame == "PETSGO" then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/PetsGoTopHub"))()
+    elseif currentgame == "PETSIM99" then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_8358162383685817.lua.txt"))()
+    elseif currentgame == "GROWAGARDEN" then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_5387254324690633.lua.txt"))()
     end
 else
     warn("GAME/PLACE NOT SUPPORTED")
