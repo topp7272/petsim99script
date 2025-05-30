@@ -20,7 +20,7 @@ if currentgame then
     if currentgame == "PETSGO" then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/PetsGoTopHub"))()
     elseif currentgame == "PETSIM99" then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_8358162383685817.lua.txt"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_6831353129189303.lua.txt"))()
     elseif currentgame == "GROWAGARDEN" then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/topp7272/petsim99script/refs/heads/main/Protected_5387254324690633.lua.txt"))()
     end
