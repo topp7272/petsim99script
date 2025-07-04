@@ -1,0 +1,573 @@
+-- Function to run the egg hatching
+local function runEggHatch()
+    if not _G.AUTOHATCHFINALEGG then return end
+    
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local EggCmds = require(ReplicatedStorage.Library.Client.EggCmds)
+    local MaxHatch = EggCmds.GetMaxHatch()
+
+    local eggName = "Obsidian Spire Egg"
+    local hatchDelay = 0.4
+
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Auto-Hatch Started",
+        Text = string.format("Spamming %s x%d every %.1fs", eggName, MaxHatch, hatchDelay),
+        Duration = 5
+    })
+
+    while _G.AUTOHATCHFINALEGG do
+        local args = {eggName, MaxHatch}
+        game:GetService("ReplicatedStorage").Network.Eggs_RequestPurchase:InvokeServer(unpack(args))
+        task.wait(hatchDelay)
+    end
+end
+
+-- Function to run the teleport with player lock
+local function runTeleport()
+    if not _G.LASTAREAFARM then return end
+    
+    local targetCFrame = CFrame.new(-15116.5732421875, 17.22402572631836, 1313.2840576171875)
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local humanoid = character:WaitForChild("Humanoid")
+
+    humanoidRootPart.CFrame = targetCFrame
+    
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+    
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+    
+    local positionLock
+    positionLock = game:GetService("RunService").Heartbeat:Connect(function()
+        humanoidRootPart.CFrame = targetCFrame
+        humanoidRootPart.Velocity = Vector3.new(0,0,0)
+        humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0,0,0)
+    end)
+
+    player.CharacterAdded:Connect(function(newCharacter)
+        local newHRP = newCharacter:WaitForChild("HumanoidRootPart")
+        local newHumanoid = newCharacter:WaitForChild("Humanoid")
+        
+        if positionLock then positionLock:Disconnect() end
+        
+        newHRP.CFrame = targetCFrame
+        newHumanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+        newHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        newHumanoid.WalkSpeed = 0
+        newHumanoid.JumpPower = 0
+        
+        positionLock = game:GetService("RunService").Heartbeat:Connect(function()
+            newHRP.CFrame = targetCFrame
+            newHRP.Velocity = Vector3.new(0,0,0)
+            newHRP.AssemblyLinearVelocity = Vector3.new(0,0,0)
+        end)
+    end)
+
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teleport Success!",
+        Text = "You have been teleported and locked in position.",
+        Duration = 5
+    })
+end
+
+-- Function to run fast farming
+local function runFastFarm()
+    if not _G.FASTFARM then return end
+    
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local PlayerPet = require(ReplicatedStorage.Library.Client.PlayerPet)
+
+    local LocalPlayer = Players.LocalPlayer
+    repeat task.wait() until LocalPlayer and LocalPlayer:GetAttribute("__LOADED")
+
+    if not LocalPlayer.Character then
+        LocalPlayer.CharacterAdded:Wait()
+    end
+
+    local HRP = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+
+    local NLibrary = ReplicatedStorage.Library
+    local Network = require(NLibrary.Client.Network)
+    local PetNetworking = require(NLibrary.Client.PetNetworking)
+    local MapCmds = require(NLibrary.Client.MapCmds)
+
+    getgenv().BreakableFolder = workspace.__THINGS.Breakables
+
+    local EquippedPets = {}
+    for _, v in pairs(PetNetworking.EquippedPets()) do
+        if not EquippedPets[v.euid] then
+            table.insert(EquippedPets, v.euid)
+        end
+    end
+
+    Network.Fired("Pets_LocalPetsUpdated"):Connect(function(petData)
+        for _, v in pairs(petData) do
+            if not EquippedPets[v.ePet.euid] then
+                table.insert(EquippedPets, v.ePet.euid)
+            end
+        end
+    end)
+
+    Network.Fired("Pets_LocalPetsUnequipped"):Connect(function(petList)
+        for _, unequippedID in pairs(petList) do
+            for i, euid in ipairs(EquippedPets) do
+                if euid == unequippedID then
+                    table.remove(EquippedPets, i)
+                    break
+                end
+            end
+        end
+    end)
+
+    local function AutoCollect()
+        local function ConnectLoot(folder, eventName)
+            if folder then
+                folder.ChildAdded:Connect(function(item)
+                    task.wait()
+                    pcall(function()
+                        Network.Fire(eventName, {item.Name})
+                        item:Destroy()
+                    end)
+                end)
+            end
+        end
+
+        ConnectLoot(workspace.__THINGS:FindFirstChild("Lootbags"), 'Lootbags_Claim')
+        ConnectLoot(workspace.__THINGS:FindFirstChild("Orbs"), 'Orbs: Collect')
+    end
+    AutoCollect()
+
+    hookfunction(PlayerPet.CalculateSpeedMultiplier, function() return 200 end)
+
+    local function FarmBreakables()
+        local RemoteList = {}
+        local PetArray = {}
+        for _, ID in pairs(EquippedPets) do
+            table.insert(PetArray, ID)
+        end
+
+        local BreakableArray = {}
+        for _, breakableInstance in pairs(getgenv().BreakableFolder:GetChildren()) do
+            local physicalPart = breakableInstance:FindFirstChildWhichIsA("BasePart")
+            if physicalPart and (physicalPart.Position - HRP.Position).Magnitude <= 1000 then
+                table.insert(BreakableArray, breakableInstance:GetAttribute("BreakableUID"))
+            end
+        end
+
+        if #PetArray == 0 or #BreakableArray == 0 then return end
+
+        for i = 1, #PetArray do
+            RemoteList[PetArray[i]] = BreakableArray[(i - 1) % #BreakableArray + 1]
+        end
+
+        if next(RemoteList) then
+            Network.UnreliableFire("Breakables_PlayerDealDamage", BreakableArray[1])
+            Network.Fire("Breakables_JoinPetBulk", RemoteList)
+        end
+    end
+
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Fast Farm Started",
+        Text = "Auto-breaking and collecting nearby breakables",
+        Duration = 5
+    })
+
+    while _G.FASTFARM do
+        FarmBreakables()
+        task.wait()
+    end
+end
+
+-- Function to run ultra optimization (Modified to preserve our UI)
+local function runUltraOptimization()
+    if not _G.ULTRAOPTIMIZATION then return end
+    
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+
+    local FULL_TRANSPARENCY = true
+    local HIDE_ALL_GUI = true
+    local MAINTAIN_COLLISION = true
+
+    local function hideAllInterfaceElements(player)
+        if not HIDE_ALL_GUI then return end
+        
+        local playerGui = player:WaitForChild("PlayerGui", 5)
+        if not playerGui then return end
+        
+        local function hideElement(guiObject)
+            -- Skip our custom UI elements
+            if guiObject.Name == "PiraScreenGui" then return end
+            
+            if guiObject:IsA("ScreenGui") or guiObject:IsA("SurfaceGui") or guiObject:IsA("BillboardGui") then
+                guiObject.Enabled = false
+            end
+            
+            if guiObject:IsA("GuiObject") then
+                guiObject.Visible = false
+                guiObject.Active = false
+            end
+            
+            if guiObject:IsA("TextLabel") or guiObject:IsA("TextButton") or guiObject:IsA("TextBox") then
+                guiObject.TextTransparency = 1
+                guiObject.BackgroundTransparency = 1
+            end
+            
+            for _, child in ipairs(guiObject:GetChildren()) do
+                hideElement(child)
+            end
+        end
+        
+        for _, gui in ipairs(playerGui:GetChildren()) do
+            if gui.Name ~= "PiraScreenGui" then
+                hideElement(gui)
+            end
+        end
+        
+        playerGui.ChildAdded:Connect(function(newGui)
+            if newGui.Name ~= "PiraScreenGui" then
+                hideElement(newGui)
+            end
+        end)
+    end
+
+    local function makeWorldInvisible()
+        if not FULL_TRANSPARENCY then return end
+        
+        local function processInstance(instance)
+            -- Skip character parts to keep them visible
+            if instance:IsA("Model") and instance:FindFirstChild("Humanoid") then return end
+            
+            if instance:IsA("BasePart") then
+                instance.Transparency = 1
+                instance.CanCollide = MAINTAIN_COLLISION
+                instance.CastShadow = false
+            end
+            
+            if instance:IsA("Texture") or instance:IsA("Decal") then
+                instance.Transparency = 1
+            end
+            
+            for _, child in ipairs(instance:GetChildren()) do
+                processInstance(child)
+            end
+        end
+        
+        processInstance(workspace)
+        workspace.DescendantAdded:Connect(processInstance)
+    end
+
+    local function applyPerformanceMode(player)
+        if HIDE_ALL_GUI then hideAllInterfaceElements(player) end
+        if FULL_TRANSPARENCY then makeWorldInvisible() end
+        
+        player.CharacterAdded:Connect(function(newCharacter)
+            if FULL_TRANSPARENCY then makeWorldInvisible() end
+        end)
+    end
+
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Ultra Optimization Active",
+        Text = "Game visuals optimized (UI preserved)",
+        Duration = 5
+    })
+
+    game.Players.PlayerAdded:Connect(applyPerformanceMode)
+    for _, player in ipairs(Players:GetPlayers()) do
+        applyPerformanceMode(player)
+    end
+end
+
+-- Function to run diamond tracker
+local function runDiamondTracker()
+    if not _G.WEBHOOKURL or _G.WEBHOOKURL == "" then return end
+    
+    repeat task.wait() until game:IsLoaded()
+    local LocalPlayer = game:GetService('Players').LocalPlayer
+    repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild('__INTRO')
+
+    local RS = game:GetService("ReplicatedStorage")
+    local Save = require(RS.Library.Client.Save).Get().Inventory
+    local HttpService = game:GetService("HttpService")
+
+    local discordid = ""
+    local DIAMOND_GIF = "https://cdn.discordapp.com/emojis/1062097221652328580.webp"
+    local pingtext = discordid ~= "" and ("<@" .. discordid .. ">") or ""
+
+    local function getDiamonds()
+        local total = 0
+        for _, v in pairs(Save.Currency) do
+            if v.id == "Diamonds" then
+                total = total + v._am
+            end
+        end
+        return total
+    end
+
+    local function sendWebhook(earned, total)
+        local requestFunc = syn and syn.request or http_request or http.request
+        local formattedEarned = earned >= 1000000 and string.format("%.1fm", earned/1000000) or tostring(earned)
+        local formattedTotal = total >= 1000000 and string.format("%.1fm", total/1000000) or tostring(total)
+        
+        local embed = {
+            title = "💎 Minute Diamond Report",
+            color = 49151,
+            thumbnail = {url = DIAMOND_GIF},
+            fields = {
+                {name = "Earned Last Minute:", value = formattedEarned, inline = true},
+                {name = "Total Diamonds:", value = formattedTotal, inline = true},
+                {name = "Player:", value = LocalPlayer.Name, inline = false}
+            },
+            footer = {
+                text = "PS99 Diamond Tracker",
+                icon_url = "https://www.roblox.com/headshot-thumbnail/image?userId="..LocalPlayer.UserId
+            }
+        }
+
+        local success, response = pcall(function()
+            return requestFunc({
+                Url = _G.WEBHOOKURL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode({
+                    content = pingtext,
+                    embeds = {embed}
+                })
+            })
+        end)
+
+        if not success then
+            warn("Webhook failed to send:", response)
+        end
+    end
+
+    local lastDiamonds = getDiamonds()
+    sendWebhook(0, lastDiamonds)
+
+    while true do
+        task.wait(60)
+        local currentDiamonds = getDiamonds()
+        local earned = currentDiamonds - lastDiamonds
+        
+        if earned > 0 then
+            sendWebhook(earned, currentDiamonds)
+        end
+        
+        lastDiamonds = currentDiamonds
+    end
+end
+
+-- Function to run UI (Complete implementation)
+local function runUI()
+    if not _G.UI then return end
+    
+    -- Wait for player to fully load
+    repeat task.wait() until game:IsLoaded()
+    local player = game:GetService("Players").LocalPlayer
+    repeat task.wait() until player and player.PlayerGui
+    
+    -- Check if UI already exists
+    if player.PlayerGui:FindFirstChild("PiraScreenGui") then
+        player.PlayerGui.PiraScreenGui:Destroy()
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PiraScreenGui"
+    ScreenGui.IgnoreGuiInset = true
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.DisplayOrder = 999
+    ScreenGui.Parent = player.PlayerGui
+
+    local Background = Instance.new("Frame")
+    Background.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    Background.BorderColor3 = Color3.fromRGB(255, 0, 255)
+    Background.Size = UDim2.new(1, 0, 1, 0)
+    Background.BorderMode = Enum.BorderMode.Inset
+    Background.Parent = ScreenGui
+
+    local function hueToColor(hue)
+        local h = (hue % 1) * 6
+        local c = 1
+        local x = 1 - math.abs(h % 2 - 1)
+        local r, g, b
+        
+        if h < 1 then r, g, b = c, x, 0
+        elseif h < 2 then r, g, b = x, c, 0
+        elseif h < 3 then r, g, b = 0, c, x
+        elseif h < 4 then r, g, b = 0, x, c
+        elseif h < 5 then r, g, b = x, 0, c
+        else r, g, b = c, 0, x end
+        
+        return Color3.new(r, g, b)
+    end
+
+    local rgbTextElements = {}
+
+    -- Header Text
+    local HeaderText = Instance.new("TextLabel")
+    HeaderText.Name = "Header"
+    HeaderText.AnchorPoint = Vector2.new(0.5, 0)
+    HeaderText.Position = UDim2.new(0.5, 0, 0.05, 0)
+    HeaderText.Size = UDim2.new(0.9, 0, 0.15, 0)
+    HeaderText.BackgroundTransparency = 1
+    HeaderText.Font = Enum.Font.FredokaOne
+    HeaderText.Text = "Pet Simulator 99 Script"
+    HeaderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderText.TextScaled = true
+    HeaderText.TextStrokeTransparency = 0.5
+    HeaderText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    HeaderText.Parent = Background
+    table.insert(rgbTextElements, HeaderText)
+
+    -- Player Name
+    local PlayerName = Instance.new("TextLabel")
+    PlayerName.Name = "PlayerName"
+    PlayerName.AnchorPoint = Vector2.new(1, 0)
+    PlayerName.Position = UDim2.new(0.99, 0, 0.01, 0)
+    PlayerName.Size = UDim2.new(0.3, 0, 0.1, 0)
+    PlayerName.BackgroundTransparency = 1
+    PlayerName.Font = Enum.Font.FredokaOne
+    PlayerName.Text = "Player: " .. player.DisplayName
+    PlayerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PlayerName.TextScaled = true
+    PlayerName.TextStrokeTransparency = 0.5
+    PlayerName.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    PlayerName.TextXAlignment = Enum.TextXAlignment.Right
+    PlayerName.Parent = Background
+    table.insert(rgbTextElements, PlayerName)
+
+    -- Timer
+    local TimerContainer = Instance.new("Frame")
+    TimerContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    TimerContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+    TimerContainer.Size = UDim2.new(0.5, 0, 0.2, 0)
+    TimerContainer.BackgroundTransparency = 1
+    TimerContainer.Parent = Background
+
+    local TimerLabel = Instance.new("TextLabel")
+    TimerLabel.Size = UDim2.new(1, 0, 1, 0)
+    TimerLabel.BackgroundTransparency = 1
+    TimerLabel.Font = Enum.Font.FredokaOne
+    TimerLabel.Text = "00:00"
+    TimerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TimerLabel.TextScaled = true
+    TimerLabel.TextStrokeTransparency = 0.7
+    TimerLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    TimerLabel.Parent = TimerContainer
+    table.insert(rgbTextElements, TimerLabel)
+
+    -- Counters Container
+    local CounterContainer = Instance.new("Frame")
+    CounterContainer.AnchorPoint = Vector2.new(0.5, 1)
+    CounterContainer.Position = UDim2.new(0.5, 0, 0.95, 0)
+    CounterContainer.Size = UDim2.new(0.8, 0, 0.1, 0)
+    CounterContainer.BackgroundTransparency = 1
+    CounterContainer.Parent = Background
+
+    local CounterLayout = Instance.new("UIListLayout", CounterContainer)
+    CounterLayout.Padding = UDim.new(0, 10)
+    CounterLayout.FillDirection = Enum.FillDirection.Horizontal
+    CounterLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    CounterLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    -- Diamond Counter
+    local DiamondFrame = Instance.new("Frame")
+    DiamondFrame.Size = UDim2.new(0.4, 0, 1, 0)
+    DiamondFrame.BackgroundTransparency = 1
+    DiamondFrame.Parent = CounterContainer
+
+    local DiamondLabel = Instance.new("TextLabel")
+    DiamondLabel.Size = UDim2.new(1, 0, 1, 0)
+    DiamondLabel.BackgroundTransparency = 1
+    DiamondLabel.Font = Enum.Font.FredokaOne
+    DiamondLabel.Text = "Diamonds💎: 0"
+    DiamondLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DiamondLabel.TextScaled = true
+    DiamondLabel.TextStrokeTransparency = 0.7
+    DiamondLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    DiamondLabel.Parent = DiamondFrame
+    table.insert(rgbTextElements, DiamondLabel)
+
+    -- Coin Counter
+    local CoinFrame = Instance.new("Frame")
+    CoinFrame.Size = UDim2.new(0.4, 0, 1, 0)
+    CoinFrame.BackgroundTransparency = 1
+    CoinFrame.Parent = CounterContainer
+
+    local FantasyLabel = Instance.new("TextLabel")
+    FantasyLabel.Size = UDim2.new(1, 0, 1, 0)
+    FantasyLabel.BackgroundTransparency = 1
+    FantasyLabel.Font = Enum.Font.FredokaOne
+    FantasyLabel.Text = "Coins💰: 0"
+    FantasyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FantasyLabel.TextScaled = true
+    FantasyLabel.TextStrokeTransparency = 0.7
+    FantasyLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    FantasyLabel.Parent = CoinFrame
+    table.insert(rgbTextElements, FantasyLabel)
+
+    -- Timer functionality
+    local startTime = os.time()
+    local rgbHue = 0
+    local rgbSpeed = 0.5
+
+    local timerConnection = game:GetService("RunService").Heartbeat:Connect(function(deltaTime)
+        -- Update timer
+        local currentTime = os.time() - startTime
+        local minutes = math.floor(currentTime / 60)
+        local seconds = currentTime % 60
+        TimerLabel.Text = string.format("%02d:%02d", minutes, seconds)
+        
+        -- Update currencies
+        local success, diamondPath, fantasyPath = pcall(function()
+            return 
+                game:GetService("Players").LocalPlayer.PlayerGui.MainLeft.Left.Currency.Diamonds.Diamonds.Amount,
+                game:GetService("Players").LocalPlayer.PlayerGui.MainLeft.Left.Currency.FantasyCoins["Fantasy Bars"].Amount
+        end)
+        
+        if success and diamondPath and fantasyPath then
+            DiamondLabel.Text = "Diamonds💎: "..diamondPath.Text
+            FantasyLabel.Text = "Coins💰: "..fantasyPath.Text
+        end
+        
+        -- Update RGB colors
+        rgbHue = (rgbHue + rgbSpeed/360) % 1
+        local color = hueToColor(rgbHue)
+        for _, textElement in ipairs(rgbTextElements) do
+            textElement.TextColor3 = color
+        end
+    end)
+
+    -- Force UI to stay on top
+    local function bringToFront()
+        ScreenGui.DisplayOrder = 999
+    end
+    game:GetService("RunService").Heartbeat:Connect(bringToFront)
+
+    return function()
+        if timerConnection then timerConnection:Disconnect() end
+        if ScreenGui then ScreenGui:Destroy() end
+    end
+end
+
+-- Run all features with proper ordering
+local cleanupUI = coroutine.wrap(runUI)()
+task.wait(1)  -- Small delay to ensure UI loads
+coroutine.wrap(runEggHatch)()
+coroutine.wrap(runTeleport)()
+coroutine.wrap(runFastFarm)()
+coroutine.wrap(runUltraOptimization)()
+coroutine.wrap(runDiamondTracker)()
+
+-- Cleanup handler
+game.Players.LocalPlayer.CharacterRemoving:Connect(function()
+    if cleanupUI then cleanupUI() end
+end)
